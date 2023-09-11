@@ -42,9 +42,10 @@
         "sidecar": true,
         "execute": true,
         "scope": [{
-          "name": "notepad",
-          "binary": "powershell.exe",
-          "args": ["."]
+          "name": "vagrant",
+          "binary": "vagrant",
+          "cmd": "vagrant",
+          "args": ["up"]
         }]
       }
     },

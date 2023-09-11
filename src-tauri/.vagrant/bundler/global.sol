@@ -1,0 +1,1 @@
+{"dependencies":[["vagrant-reload",["= 0.0.1"]],["vagrant-vmware-desktop",["= 3.0.3"]],["racc",["~> 1.4"]],["nokogiri",["~> 1.6"]],["iniparse",["> 1.0"]],["log4r",["~> 1.1"]],["concurrent-ruby",["~> 1.0"]],["i18n",["~> 1.8"]],["vagrant-vmware-esxi",["= 2.5.5"]]],"checksum":"87af883d7a92504fe8970e6a4692a19fb1469823f343a8f8ff18f3b7a009f26d","vagrant_version":"2.3.4"}

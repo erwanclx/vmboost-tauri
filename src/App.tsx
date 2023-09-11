@@ -79,8 +79,7 @@ function App() {
     config.winrm.timeout = 1800
     config.vm.boot_timeout = 1800
     config.vm.provider "vmware_workstation" do |v|
-      config.vm.synced_folder "./test", "/srv/ad"
-      v.gui = ${values.gui}
+      v.gui = true
       v.vmx["memsize"] = "${values.memory}"
       v.vmx["numvcpus"] = "${values.cpu}"
       v.vmx["cpuid.coresPerSocket"] = "${values.cpucores}"
@@ -88,9 +87,7 @@ function App() {
   end
     `;
     alert('Your VM is being created, please wait a few seconds');
-    const powershellCommand = new Command('notepad');
-    powershellCommand.execute()
-    // Write file with verbose in alert
+    
     // writeTextFile({
     //   path: `Vagrantfile`,
     //   contents: content,
@@ -99,6 +96,12 @@ function App() {
     // }).catch((error) => {
     //   alert(error);
     // });
+
+    const powershellCommand = new Command('vagrant', ['up']);
+    powershellCommand.execute()
+      .then((output) => {
+        console.log(output);
+      })
   }
 
   
