@@ -1,13 +1,12 @@
 
     Vagrant.configure('2') do |config|
-    config.vm.box = 'bbfdb'
-    config.vm.hostname = 'f'
-    config.vm.define "wf"
+    config.vm.box = 'a'
+    config.vm.hostname = 'a'
+    config.vm.define "a"
     config.winrm.timeout = 1800
     config.vm.boot_timeout = 1800
     config.vm.provider "vmware_workstation" do |v|
-      # config.vm.synced_folder "./test", "/srv/ad"
-      v.gui = true
+      v.gui = false
       v.vmx["memsize"] = "512"
       v.vmx["numvcpus"] = "1"
       v.vmx["cpuid.coresPerSocket"] = "1"

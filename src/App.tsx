@@ -35,7 +35,7 @@ import {
   FormMessage,
 } from "./components/ui/form"
 
-// import { writeTextFile } from '@tauri-apps/api/fs';
+import { writeTextFile } from '@tauri-apps/api/fs';
 import { Command } from '@tauri-apps/api/shell';
 // import { writeTextFile, BaseDirectory } from '@tauri-apps/api/fs';
 
@@ -79,7 +79,7 @@ function App() {
     config.winrm.timeout = 1800
     config.vm.boot_timeout = 1800
     config.vm.provider "vmware_workstation" do |v|
-      v.gui = true
+      v.gui = ${values.gui}
       v.vmx["memsize"] = "${values.memory}"
       v.vmx["numvcpus"] = "${values.cpu}"
       v.vmx["cpuid.coresPerSocket"] = "${values.cpucores}"
@@ -88,14 +88,14 @@ function App() {
     `;
     alert('Your VM is being created, please wait a few seconds');
     
-    // writeTextFile({
-    //   path: `Vagrantfile`,
-    //   contents: content,
-    // }).then(() => {
-    //   alert('Your VM is ready to be launched !');
-    // }).catch((error) => {
-    //   alert(error);
-    // });
+    writeTextFile({
+      path: `Vagrantfile`,
+      contents: content,
+    }).then(() => {
+      alert('Your VM is ready to be launched !');
+    }).catch((error) => {
+      alert(error);
+    });
 
     const powershellCommand = new Command('vagrant', ['up']);
     powershellCommand.execute()
@@ -288,7 +288,10 @@ function App() {
                       <FormItem>
                         <FormLabel htmlFor="gui">Launch GUI</FormLabel>
                         <FormControl>
-                          <Switch {...field} id="gui" value={field.value ? 'true' : 'false'} />
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
                         </FormControl>
                         {/* <FormDescription>Enter the amount of memory</FormDescription> */}
                         <FormMessage>{form.formState.errors.gui?.message}</FormMessage>
