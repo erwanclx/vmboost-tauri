@@ -40,8 +40,13 @@ import { Command } from '@tauri-apps/api/shell';
 // import { writeTextFile, BaseDirectory } from '@tauri-apps/api/fs';
 
 // var spawn = require("child_process").spawn;
+import { useState } from 'react';
+import LaunchAlert from './components/alert-launch';
 
 function App() {
+
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [powershellOutput, setPowershellOutput] = useState({stdout: '', stderr: ''});
 
   const formSchema = z.object({
     boxname: z.string().nonempty(),
@@ -86,13 +91,16 @@ function App() {
     end
   end
     `;
-    alert('Your VM is being created, please wait a few seconds');
+    
+    setIsNotificationOpen(true);
+    // alert('Your VM is being created, please wait a few seconds');
     
     writeTextFile({
       path: `Vagrantfile`,
       contents: content,
     }).then(() => {
-      alert('Your VM is ready to be launched !');
+      // alert('Your VM is ready to be launched !');
+      // setIsNotificationOpen(true);
     }).catch((error) => {
       alert(error);
     });
@@ -100,13 +108,16 @@ function App() {
     const powershellCommand = new Command('vagrant', ['up']);
     powershellCommand.execute()
       .then((output) => {
-        console.log(output);
+        setPowershellOutput(output);
       })
   }
 
   
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+
+      <LaunchAlert isOpen={isNotificationOpen} setIsOpen={setIsNotificationOpen} psContent={powershellOutput} />
+
       <Navbar />
       <main className='p-8 w-full'>
       <Card>
@@ -130,7 +141,6 @@ function App() {
                         <FormControl>
                           <Input {...field} defaultValue="" type="text" id="boxname" placeholder="ubuntu/trusty64" />
                         </FormControl>
-                        {/* <FormDescription>Enter the name of the box you want to use</FormDescription> */}
                         <FormMessage>{form.formState.errors.boxname?.message}</FormMessage>
                       </FormItem>
                     )}
@@ -146,7 +156,6 @@ function App() {
                         <FormControl>
                           <Input {...field} defaultValue="" type="text" id="boxversion" placeholder="1.0.0" />
                         </FormControl>
-                        {/* <FormDescription>Enter the version of the box you want to use</FormDescription> */}
                         <FormMessage>{form.formState.errors.boxversion?.message}</FormMessage>
                       </FormItem>
                     )}
@@ -165,7 +174,6 @@ function App() {
                         <FormControl>
                           <Input {...field} defaultValue="" type="text" id="vmname" placeholder="My VM" />
                         </FormControl>
-                        {/* <FormDescription>Enter the name of the VM</FormDescription> */}
                         <FormMessage>{form.formState.errors.vmname?.message}</FormMessage>
                       </FormItem>
                     )}
@@ -181,7 +189,6 @@ function App() {
                         <FormControl>
                           <Input {...field} defaultValue="" type="text" id="hostname" placeholder="SRV-UBUNTU" />
                         </FormControl>
-                        {/* <FormDescription>Enter the hostname of the VM</FormDescription> */}
                         <FormMessage>{form.formState.errors.hostname?.message}</FormMessage>
                       </FormItem>
                     )}
@@ -243,7 +250,6 @@ function App() {
                               <SelectItem value="8">8</SelectItem>
                             </SelectContent>
                         </Select>
-                        {/* <FormDescription>Enter the number of cores per CPU</FormDescription> */}
                         <FormMessage>{form.formState.errors.cpucores?.message}</FormMessage>
                       </FormItem>
                     )}
@@ -274,7 +280,6 @@ function App() {
                               <SelectItem value="8192">8Gb</SelectItem>
                             </SelectContent>
                         </Select>
-                        {/* <FormDescription>Enter the amount of memory</FormDescription> */}
                         <FormMessage>{form.formState.errors.memory?.message}</FormMessage>
                       </FormItem>
                     )}
@@ -293,17 +298,12 @@ function App() {
                             onCheckedChange={field.onChange}
                           />
                         </FormControl>
-                        {/* <FormDescription>Enter the amount of memory</FormDescription> */}
                         <FormMessage>{form.formState.errors.gui?.message}</FormMessage>
                       </FormItem>
                     )}
                   />
                 </div>
               </div>
-                {/* <div className='w-2/3'>
-                  <Label htmlFor="boxname">Vagrant Box name</Label>
-                  <Input {...register("boxname", {required: true})} defaultValue="" type="text" id="boxname" placeholder="ubuntu/trusty64" />
-                </div> */}
               
               <div>
                 <Button type="submit" className="mt-4">Submit your VM 🎉</Button>
