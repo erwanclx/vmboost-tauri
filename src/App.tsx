@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "./components/ui/select"
 
-import { useForm } from 'react-hook-form';
+import { set, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from "zod"
 import {
@@ -35,9 +35,11 @@ import {
   FormMessage,
 } from "./components/ui/form"
 
-import { writeTextFile } from '@tauri-apps/api/fs';
+import { writeTextFile, writeBinaryFile } from '@tauri-apps/api/fs';
 import { Command } from '@tauri-apps/api/shell';
 // import { writeTextFile, BaseDirectory } from '@tauri-apps/api/fs';
+import { getClient, ResponseType } from "@tauri-apps/api/http";
+import axios from 'axios';
 
 // var spawn = require("child_process").spawn;
 import { useState } from 'react';
@@ -47,6 +49,7 @@ function App() {
 
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [powershellOutput, setPowershellOutput] = useState({stdout: '', stderr: ''});
+  const [downlooadLink, setDownloadLink] = useState('');
 
   const formSchema = z.object({
     boxname: z.string().nonempty(),
@@ -74,42 +77,70 @@ function App() {
   })
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
-    // Write a file
-    const content = `
-    Vagrant.configure('2') do |config|
-    config.vm.box = '${values.boxname}'
-    config.vm.hostname = '${values.hostname}'
-    config.vm.define "${values.vmname}"
-    config.winrm.timeout = 1800
-    config.vm.boot_timeout = 1800
-    config.vm.provider "vmware_workstation" do |v|
-      v.gui = ${values.gui}
-      v.vmx["memsize"] = "${values.memory}"
-      v.vmx["numvcpus"] = "${values.cpu}"
-      v.vmx["cpuid.coresPerSocket"] = "${values.cpucores}"
-    end
-  end
-    `;
-    
-    setIsNotificationOpen(true);
-    // alert('Your VM is being created, please wait a few seconds');
-    
-    writeTextFile({
-      path: `Vagrantfile`,
-      contents: content,
-    }).then(() => {
-      // alert('Your VM is ready to be launched !');
-      // setIsNotificationOpen(true);
-    }).catch((error) => {
-      alert(error);
-    });
+    const url = "https://app.vagrantup.com/uwmidsun/boxes/box/versions/2.1.0/providers/virtualbox.box";
 
-    const powershellCommand = new Command('vagrant', ['up']);
-    powershellCommand.execute()
-      .then((output) => {
-        setPowershellOutput(output);
-      })
+    setDownloadLink(url);
+    // Write a tag html and click it to launch the download
+    // const anchor = document.createElement('a');
+    // anchor.href = url;
+    // anchor.download = 'vagrant.box';
+    // anchor.click();
+
+    async function downloadFile() {
+      const client = await getClient();
+      const data = (
+        await client.get(url, {
+          responseType: ResponseType.Binary,
+        })
+      ).data as any;
+      const uint8Array = new Uint8Array(data);
+      await writeBinaryFile(
+        'vagrant.box',
+        uint8Array
+      );
+    }
+
+    downloadFile();
+
+    
+    
+
+  //   console.log(values);
+  //   // Write a file
+  //   const content = `
+  //   Vagrant.configure('2') do |config|
+  //   config.vm.box = '${values.boxname}'
+  //   config.vm.hostname = '${values.hostname}'
+  //   config.vm.define "${values.vmname}"
+  //   config.winrm.timeout = 1800
+  //   config.vm.boot_timeout = 1800
+  //   config.vm.provider "vmware_workstation" do |v|
+  //     v.gui = ${values.gui}
+  //     v.vmx["memsize"] = "${values.memory}"
+  //     v.vmx["numvcpus"] = "${values.cpu}"
+  //     v.vmx["cpuid.coresPerSocket"] = "${values.cpucores}"
+  //   end
+  // end
+  //   `;
+    
+  //   setIsNotificationOpen(true);
+  //   // alert('Your VM is being created, please wait a few seconds');
+    
+  //   writeTextFile({
+  //     path: `Vagrantfile`,
+  //     contents: content,
+  //   }).then(() => {
+  //     // alert('Your VM is ready to be launched !');
+  //     // setIsNotificationOpen(true);
+  //   }).catch((error) => {
+  //     alert(error);
+  //   });
+
+  //   const powershellCommand = new Command('vagrant', ['up']);
+  //   powershellCommand.execute()
+  //     .then((output) => {
+  //       setPowershellOutput(output);
+  //     })
   }
 
   
@@ -139,7 +170,7 @@ function App() {
                       <FormItem>
                         <FormLabel htmlFor="boxname">Vagrant Box name</FormLabel>
                         <FormControl>
-                          <Input {...field} defaultValue="" type="text" id="boxname" placeholder="ubuntu/trusty64" />
+                          <Input autoComplete='off' {...field} defaultValue="" type="text" id="boxname" placeholder="ubuntu/trusty64" />
                         </FormControl>
                         <FormMessage>{form.formState.errors.boxname?.message}</FormMessage>
                       </FormItem>
@@ -154,7 +185,7 @@ function App() {
                       <FormItem>
                         <FormLabel htmlFor="boxversion">Vagrant Box version</FormLabel>
                         <FormControl>
-                          <Input {...field} defaultValue="" type="text" id="boxversion" placeholder="1.0.0" />
+                          <Input autoComplete='off' {...field} defaultValue="" type="text" id="boxversion" placeholder="1.0.0" />
                         </FormControl>
                         <FormMessage>{form.formState.errors.boxversion?.message}</FormMessage>
                       </FormItem>
@@ -172,7 +203,7 @@ function App() {
                       <FormItem>
                         <FormLabel htmlFor="vmname">VM Name</FormLabel>
                         <FormControl>
-                          <Input {...field} defaultValue="" type="text" id="vmname" placeholder="My VM" />
+                          <Input autoComplete='off' {...field} defaultValue="" type="text" id="vmname" placeholder="My VM" />
                         </FormControl>
                         <FormMessage>{form.formState.errors.vmname?.message}</FormMessage>
                       </FormItem>
@@ -187,7 +218,7 @@ function App() {
                       <FormItem>
                         <FormLabel htmlFor="hostname">Hostname</FormLabel>
                         <FormControl>
-                          <Input {...field} defaultValue="" type="text" id="hostname" placeholder="SRV-UBUNTU" />
+                          <Input autoComplete='off' {...field} defaultValue="" type="text" id="hostname" placeholder="SRV-UBUNTU" />
                         </FormControl>
                         <FormMessage>{form.formState.errors.hostname?.message}</FormMessage>
                       </FormItem>

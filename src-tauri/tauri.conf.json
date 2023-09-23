@@ -35,6 +35,11 @@
         "open": true, 
         "save": true 
       },
+      "http": {
+        "all": true,
+        "request": true,
+        "scope": ["https://**/*"] 
+      },
       "all": false,
       "shell": {
         "all": true,
