@@ -15,32 +15,21 @@ import {
 
 import { Skeleton } from "./ui/skeleton"
   
-  export default function LaunchAlert(props: any) {
+  export default function DownloadAlert(props: any) {
     // const [open, setOpen] = useState(false);
-    console.log('props', props);
+    
     let open = props.isOpen;
-    let psContent = props.psContent;
-    let psStderr = '';
-    console.log(psStderr);
-    let psStdout = '';
-    if(psContent.stderr) {
-      psStderr = psContent.stderr;
-    }
-    if(psContent.stdout) {
-      psStdout = psContent.stdout;
-    }
-    console.log(psContent);
-    console.log(props.psContent);
+    let progress = props.progress;
     return (
       <AlertDialog  open={open}>
       {/* <AlertDialog  open={open} onOpenChange={setOpen} > */}
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Vagrantfile has been created, please wait for your VM up.. ⏳</AlertDialogTitle>
+            <AlertDialogTitle>Downloading your box, please wait.. ⏳</AlertDialogTitle>
             <AlertDialogDescription>
-            {psStdout
+            {progress
               ? <div className="bg-[#18181b] p-2 rounded-xl" >
-                {psStdout}
+                {progress}
                 </div>
               : <Skeleton className="h-4 p-2 rounded-xl" />
             }

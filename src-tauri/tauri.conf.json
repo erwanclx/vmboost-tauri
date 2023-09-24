@@ -67,7 +67,7 @@
       ]
     },
     "security": {
-      "csp": null
+      "csp": ""
     },
     "windows": [
       {

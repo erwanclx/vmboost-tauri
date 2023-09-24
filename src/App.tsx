@@ -35,21 +35,23 @@ import {
   FormMessage,
 } from "./components/ui/form"
 
-import { writeTextFile, writeBinaryFile } from '@tauri-apps/api/fs';
-import { Command } from '@tauri-apps/api/shell';
-// import { writeTextFile, BaseDirectory } from '@tauri-apps/api/fs';
-import { getClient, ResponseType } from "@tauri-apps/api/http";
-import axios from 'axios';
+import { writeTextFile } from '@tauri-apps/api/fs';
+import { invoke } from '@tauri-apps/api/tauri';
+import { listen } from "@tauri-apps/api/event";
 
 // var spawn = require("child_process").spawn;
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import LaunchAlert from './components/alert-launch';
+import DownloadAlert from './components/alert-download';
+import { Command } from '@tauri-apps/api/shell'
 
 function App() {
 
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [powershellOutput, setPowershellOutput] = useState({stdout: '', stderr: ''});
   const [downlooadLink, setDownloadLink] = useState('');
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   const formSchema = z.object({
     boxname: z.string().nonempty(),
@@ -76,28 +78,59 @@ function App() {
     }
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    const url = "https://app.vagrantup.com/uwmidsun/boxes/box/versions/2.1.0/providers/virtualbox.box";
+  interface ProgressEventPayload {
+    progress: number;
+  }
 
+  interface ProgressEventProps {
+    payload: ProgressEventPayload;
+  }
+  
+
+  useEffect(() => {
+    const unListen = listen("PROGRESS", (e: ProgressEventProps) => {
+      setProgress(e.payload.progress);
+    });
+
+    return () => {
+      unListen.then((f) => f());
+    };
+  }, []);
+
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    
+    const url = "https://app.vagrantup.com/uwmidsun/boxes/box/versions/2.1.0/providers/virtualbox.box";
+    console.log(downlooadLink);
     setDownloadLink(url);
-    // Write a tag html and click it to launch the download
-    // const anchor = document.createElement('a');
-    // anchor.href = url;
-    // anchor.download = 'vagrant.box';
-    // anchor.click();
+    console.log(values);
 
     async function downloadFile() {
-      const client = await getClient();
-      const data = (
-        await client.get(url, {
-          responseType: ResponseType.Binary,
-        })
-      ).data as any;
-      const uint8Array = new Uint8Array(data);
-      await writeBinaryFile(
-        'vagrant.box',
-        uint8Array
-      );
+      // const client = await getClient();
+      // const response = await client.get(url);
+      // invoke('download', { url, name: 'vagranttestrs.box' })
+      //   .then((res) => (console.log((res))))
+      //   .catch((e) => (console.log((e))))
+      //   .finally(() => (console.log(('video.download_finished'))));
+      
+      setIsDownloading(true);
+
+      const appWindow = import("@tauri-apps/api/window");
+      invoke("progress_tracker", {
+        window: appWindow,
+      });
+
+
+      // console.log(response);
+      // const data = (
+      //   await client.get(url, {
+      //     responseType: ResponseType.Binary,
+      //   })
+      // ).data as any;
+      // const uint8Array = new Uint8Array(data);
+      // await writeBinaryFile(
+      //   'vagrant.box',
+      //   uint8Array
+      // );
     }
 
     downloadFile();
@@ -107,40 +140,40 @@ function App() {
 
   //   console.log(values);
   //   // Write a file
-  //   const content = `
-  //   Vagrant.configure('2') do |config|
-  //   config.vm.box = '${values.boxname}'
-  //   config.vm.hostname = '${values.hostname}'
-  //   config.vm.define "${values.vmname}"
-  //   config.winrm.timeout = 1800
-  //   config.vm.boot_timeout = 1800
-  //   config.vm.provider "vmware_workstation" do |v|
-  //     v.gui = ${values.gui}
-  //     v.vmx["memsize"] = "${values.memory}"
-  //     v.vmx["numvcpus"] = "${values.cpu}"
-  //     v.vmx["cpuid.coresPerSocket"] = "${values.cpucores}"
-  //   end
-  // end
-  //   `;
+    const content = `
+    Vagrant.configure('2') do |config|
+    config.vm.box = '${values.boxname}'
+    config.vm.hostname = '${values.hostname}'
+    config.vm.define "${values.vmname}"
+    config.winrm.timeout = 1800
+    config.vm.boot_timeout = 1800
+    config.vm.provider "vmware_workstation" do |v|
+      v.gui = ${values.gui}
+      v.vmx["memsize"] = "${values.memory}"
+      v.vmx["numvcpus"] = "${values.cpu}"
+      v.vmx["cpuid.coresPerSocket"] = "${values.cpucores}"
+    end
+  end
+    `;
     
-  //   setIsNotificationOpen(true);
-  //   // alert('Your VM is being created, please wait a few seconds');
+    setIsNotificationOpen(true);
+    // alert('Your VM is being created, please wait a few seconds');
     
-  //   writeTextFile({
-  //     path: `Vagrantfile`,
-  //     contents: content,
-  //   }).then(() => {
-  //     // alert('Your VM is ready to be launched !');
-  //     // setIsNotificationOpen(true);
-  //   }).catch((error) => {
-  //     alert(error);
-  //   });
+    writeTextFile({
+      path: `Vagrantfile`,
+      contents: content,
+    }).then(() => {
+      // alert('Your VM is ready to be launched !');
+      // setIsNotificationOpen(true);
+    }).catch((error) => {
+      alert(error);
+    });
 
-  //   const powershellCommand = new Command('vagrant', ['up']);
-  //   powershellCommand.execute()
-  //     .then((output) => {
-  //       setPowershellOutput(output);
-  //     })
+    const powershellCommand = new Command('vagrant', ['up']);
+    powershellCommand.execute()
+      .then((output) => {
+        setPowershellOutput(output);
+      })
   }
 
   
@@ -148,6 +181,7 @@ function App() {
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
 
       <LaunchAlert isOpen={isNotificationOpen} setIsOpen={setIsNotificationOpen} psContent={powershellOutput} />
+      <DownloadAlert isOpen={isDownloading} setIsOpen={setIsDownloading} progress={progress} />
 
       <Navbar />
       <main className='p-8 w-full'>
