@@ -1,8 +1,8 @@
 
     Vagrant.configure('2') do |config|
-    config.vm.box = 'sdsa'
-    config.vm.hostname = 'sdsa'
-    config.vm.define "sdsa"
+    config.vm.box = 'dasda'
+    config.vm.hostname = 'dasda'
+    config.vm.define "dasda"
     config.winrm.timeout = 1800
     config.vm.boot_timeout = 1800
     config.vm.provider "vmware_workstation" do |v|

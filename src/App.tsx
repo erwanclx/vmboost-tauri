@@ -90,6 +90,9 @@ function App() {
   useEffect(() => {
     const unListen = listen("PROGRESS", (e: ProgressEventProps) => {
       setProgress(e.payload.progress);
+      if (e.payload.progress === 100) {
+        setIsDownloading(false);
+      }
     });
 
     return () => {
@@ -119,18 +122,6 @@ function App() {
         window: appWindow,
       });
 
-
-      // console.log(response);
-      // const data = (
-      //   await client.get(url, {
-      //     responseType: ResponseType.Binary,
-      //   })
-      // ).data as any;
-      // const uint8Array = new Uint8Array(data);
-      // await writeBinaryFile(
-      //   'vagrant.box',
-      //   uint8Array
-      // );
     }
 
     downloadFile();
