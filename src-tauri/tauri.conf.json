@@ -50,7 +50,7 @@
           "name": "vagrant",
           "binary": "vagrant",
           "cmd": "vagrant",
-          "args": ["up"]
+          "args": true
         }]
       }
     },

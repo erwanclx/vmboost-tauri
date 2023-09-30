@@ -1,56 +1,61 @@
 import {
     AlertDialog,
-    // AlertDialogAction,
+    AlertDialogAction,
     // AlertDialogCancel,
     AlertDialogContent,
     AlertDialogDescription,
-    // AlertDialogFooter,
+    AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
     // AlertDialogTrigger,
   } from "./ui/alert-dialog"
 //   import { Button } from "./ui/button"
 
-// import { useState } from "react"
+import { useState } from "react"
 
 import { Skeleton } from "./ui/skeleton"
   
   export default function LaunchAlert(props: any) {
-    // const [open, setOpen] = useState(false);
-    console.log('props', props);
     let open = props.isOpen;
     let psContent = props.psContent;
     let psStderr = '';
-    console.log(psStderr);
-    let psStdout = '';
+    let content = ''
+    let status = ''
     if(psContent.stderr) {
-      psStderr = psContent.stderr;
+      content = psContent.stderr;
+      status = 'error'
+    } else {
+      content = psContent.stdout;
+      status = 'success'
     }
-    if(psContent.stdout) {
-      psStdout = psContent.stdout;
-    }
-    console.log(psContent);
-    console.log(props.psContent);
     return (
-      <AlertDialog  open={open}>
+      <AlertDialog open={open}>
       {/* <AlertDialog  open={open} onOpenChange={setOpen} > */}
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Vagrantfile has been created, please wait for your VM up.. ⏳</AlertDialogTitle>
             <AlertDialogDescription>
-            {psStdout
-              ? <div className="bg-[#18181b] p-2 rounded-xl" >
-                {psStdout}
+            {content
+              ? <div className="bg-[#18181b] p-2 rounded-xl max-h-96 overflow-y-scroll" >
+                {content}
                 </div>
               : <Skeleton className="h-4 p-2 rounded-xl" />
             }
 
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {/* <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction>Continue</AlertDialogAction>
-          </AlertDialogFooter> */}
+            <AlertDialogFooter>
+              {content
+                ? <AlertDialogAction onClick={ () => { props.setOpen(false) }} >
+                  {
+                    status === 'success'
+                    ? 'That\'s up ! 🔥'
+                    : 'Oh no ! An error occured 😱'
+                  }
+                </AlertDialogAction>
+                : ''
+              }
+            </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     )

@@ -19,10 +19,15 @@ struct Payload {
 }
 
 #[tauri::command]
-async fn progress_tracker(window: Window){
+async fn progress_tracker(window: Window,
+url : String,
+name : String,
+){
 
-  let url = "https://app.vagrantup.com/uwmidsun/boxes/box/versions/2.1.0/providers/virtualbox.box";
-  let name = "virtualbox.box";
+//   let url = "https://app.vagrantup.com/uwmidsun/boxes/box/versions/2.1.0/providers/virtualbox.box";
+  println!("Downloading file from {}", url);
+//   let name = "virtualbox.box";
+  println!("Saving to {}", name);
   let mut response = reqwest::get(url).await;
   let mut file = File::create(name).unwrap();
   let mut size = 0;

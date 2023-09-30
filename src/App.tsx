@@ -44,6 +44,7 @@ import { useState, useEffect } from 'react';
 import LaunchAlert from './components/alert-launch';
 import DownloadAlert from './components/alert-download';
 import { Command } from '@tauri-apps/api/shell'
+import { get } from 'http'
 
 function App() {
 
@@ -52,12 +53,19 @@ function App() {
   const [downlooadLink, setDownloadLink] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [downloaded, setDownloaded] = useState(false);
+  const [added, setAdded] = useState(false);
+  const [boxnameState, setBoxname] = useState('');
+  const [providerState, setProvider] = useState('');
 
   const formSchema = z.object({
     boxname: z.string().nonempty(),
+    author: z.any(),
+    provider: z.enum(['vmware_desktop', 'vmware_fusion', 'vmware_workstation'] as const),
     boxversion: z.string().nonempty(),
     vmname: z.string().nonempty(),
     hostname: z.string().nonempty(),
+    ip_address: z.string(),
     cpu: z.string().nonempty(),
     cpucores: z.string().nonempty(),
     memory: z.string().nonempty(),
@@ -68,9 +76,12 @@ function App() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       boxname: "",
+      author: "",
+      provider: "vmware_desktop",
       boxversion: "",
       vmname: "",
       hostname: "",
+      ip_address: "",
       cpu: "1",
       cpucores: "1",
       memory: "512",
@@ -85,6 +96,31 @@ function App() {
   interface ProgressEventProps {
     payload: ProgressEventPayload;
   }
+
+  function vagrantUpBox() {
+    const powershellCommand = new Command('vagrant', ['up']);
+    setIsNotificationOpen(true);
+    powershellCommand.execute()
+    .then((output) => {
+      console.log(output);
+      if (output.stderr) {
+        setPowershellOutput({stdout: '', stderr: output.stderr});
+      }
+      else {
+        setPowershellOutput({stdout: output.stdout, stderr: ''});
+      }
+    })
+  }  
+
+  function vagrantAddBox(boxname: string, provider: string) {
+    // vagrant box add StefanScherer/windows_2019 windows_2019 --provider=vmware_desktop
+    const powershellCommand = new Command('vagrant', ['box', 'add', boxname, boxname.split('/')[1] , '--provider', provider]);
+    powershellCommand.execute()
+    .then((output) => {
+      console.log(output);
+      setAdded(true);
+    })
+  }
   
 
   useEffect(() => {
@@ -92,6 +128,7 @@ function App() {
       setProgress(e.payload.progress);
       if (e.payload.progress === 100) {
         setIsDownloading(false);
+        setDownloaded(true);
       }
     });
 
@@ -100,71 +137,107 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (downloaded) {
+      // vagrantUpBox();
+      vagrantAddBox(boxnameState, providerState)
+      setDownloaded(false);
+    }
+  }, [downloaded]);
+
+  useEffect(() => {
+    if(added) {
+      vagrantUpBox();
+      setAdded(false);
+    }
+  }, [added]);
+
+  function getAuthor(boxname: string) {
+    const author = boxname.split('/')[0];
+    const box = boxname.split('/')[1];
+    return [author, box]
+  }
+
+  async function downloadFile(url: string, name: string) {
+            
+    setIsDownloading(true);
+
+    const appWindow = import("@tauri-apps/api/window");
+    invoke("progress_tracker", {
+      window: appWindow,
+      url,
+      name: name,
+    });
+  }
+
   function onSubmit(values: z.infer<typeof formSchema>) {
     
-    const url = "https://app.vagrantup.com/uwmidsun/boxes/box/versions/2.1.0/providers/virtualbox.box";
-    console.log(downlooadLink);
-    setDownloadLink(url);
-    console.log(values);
-
-    async function downloadFile() {
-      // const client = await getClient();
-      // const response = await client.get(url);
-      // invoke('download', { url, name: 'vagranttestrs.box' })
-      //   .then((res) => (console.log((res))))
-      //   .catch((e) => (console.log((e))))
-      //   .finally(() => (console.log(('video.download_finished'))));
+    async function getLocalBoxes(boxname: string, provider: string) {
+      const boxes: Array<string> = [];
+      const powershellCommand = new Command('vagrant', ['box', 'list']);
+      // const powershellCommand = new Command('vagrant', ['box', 'add', boxname, '--provider', 'vmware_desktop']);
+      powershellCommand.execute()
+      .then((output) => {
+        output.stdout.split('\n').forEach((line) => {
+          boxes.push(line.split(' ')[0]);
+        });
+      }).then(() => {
+        if (!boxes.includes(boxname)) {
+          setBoxname(boxname);
+          setProvider(provider);
+          [values.author, values.boxname] = getAuthor(values.boxname);
+          console.log(values);
+          const url = `https://app.vagrantup.com/${values.author}/boxes/${values.boxname}/versions/${values.boxversion}/providers/${values.provider}.box`;
+          setDownloadLink(url);
       
-      setIsDownloading(true);
+          downloadFile(url, values.boxname)
 
-      const appWindow = import("@tauri-apps/api/window");
-      invoke("progress_tracker", {
-        window: appWindow,
+          return;
+        }else {
+          // vagrantUpBox()
+          setAdded(true);
+          return;
+        }
+      }).catch((error) => {
+        alert(error);
+      }).finally(() => {
+        return;
       });
-
     }
 
-    downloadFile();
-
+    getLocalBoxes(values.boxname, values.provider);   
     
-    
+    console.log(values);
 
-  //   console.log(values);
-  //   // Write a file
     const content = `
-    Vagrant.configure('2') do |config|
-    config.vm.box = '${values.boxname}'
-    config.vm.hostname = '${values.hostname}'
-    config.vm.define "${values.vmname}"
-    config.winrm.timeout = 1800
-    config.vm.boot_timeout = 1800
-    config.vm.provider "vmware_workstation" do |v|
-      v.gui = ${values.gui}
-      v.vmx["memsize"] = "${values.memory}"
-      v.vmx["numvcpus"] = "${values.cpu}"
-      v.vmx["cpuid.coresPerSocket"] = "${values.cpucores}"
-    end
-  end
-    `;
-    
-    setIsNotificationOpen(true);
-    // alert('Your VM is being created, please wait a few seconds');
-    
-    writeTextFile({
-      path: `Vagrantfile`,
-      contents: content,
-    }).then(() => {
-      // alert('Your VM is ready to be launched !');
-      // setIsNotificationOpen(true);
-    }).catch((error) => {
-      alert(error);
-    });
+          Vagrant.configure('2') do |config|
+          config.vm.box = '${values.boxname}'
+          config.vm.hostname = '${values.hostname}'
+          config.vm.define "${values.vmname}"
+          config.winrm.timeout = 1800
+          config.vm.boot_timeout = 1800
+          ${values.ip_address ? `config.vm.network "private_network", ip: "${values.ip_address}"` : ''}
+          config.vm.provider "vmware_workstation" do |v|
+            v.gui = ${values.gui}
+            v.vmx["memsize"] = "${values.memory}"
+            v.vmx["numvcpus"] = "${values.cpu}"
+            v.vmx["cpuid.coresPerSocket"] = "${values.cpucores}"
+          end
+        end
+          `;
+          
+          // setIsNotificationOpen(true);
+          
+          writeTextFile({
+            path: `Vagrantfile`,
+            contents: content,
+          }).then(() => {
+            // alert('Your VM is ready to be launched !');
+          }).catch((error) => {
+            alert(error);
+          });
+          // vagrantUpBox()
 
-    const powershellCommand = new Command('vagrant', ['up']);
-    powershellCommand.execute()
-      .then((output) => {
-        setPowershellOutput(output);
-      })
   }
 
   
@@ -186,23 +259,26 @@ function App() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className='flex flex-col gap-2 -mt-5'>
-              <div className='flex justify-between'>
-                <div className='w-2/3'>
+              <div className='flex gap-4'>
+                <div className='w-1/2'>
                   <FormField
                     control={form.control}
                     name="boxname"
                     render={({ field}) => (
                       <FormItem>
                         <FormLabel htmlFor="boxname">Vagrant Box name</FormLabel>
-                        <FormControl>
-                          <Input autoComplete='off' {...field} defaultValue="" type="text" id="boxname" placeholder="ubuntu/trusty64" />
-                        </FormControl>
+                        <div className='relative' >
+                          <FormControl>
+                            <Input autoComplete='off' {...field} defaultValue="" type="text" id="boxname" placeholder="ubuntu/trusty64" />
+                          </FormControl>
+                          {/* <Button onClick={getLastVersion()} className='absolute top-1.5 right-2 w-7 h-7 p-0'>X</Button> */}
+                        </div>
                         <FormMessage>{form.formState.errors.boxname?.message}</FormMessage>
                       </FormItem>
                     )}
                   />
                 </div>
-                <div>
+                <div className='w-1/4'>
                   <FormField
                     control={form.control}
                     name="boxversion"
@@ -217,9 +293,7 @@ function App() {
                     )}
                   />
                 </div>
-              </div> 
-              <Separator className="mt-2"/>
-              <div className='flex gap-4'>
+                <Separator orientation="vertical" className='h-10 mt-auto' />
                 <div className='w-1/2'>
                   <FormField
                     control={form.control}
@@ -235,6 +309,10 @@ function App() {
                     )}
                   />
                 </div>
+              </div>
+              <Separator className="mt-2"/>
+              <div className='flex gap-4'>
+                
                 <div className='w-1/2'>
                   <FormField
                     control={form.control}
@@ -246,6 +324,21 @@ function App() {
                           <Input autoComplete='off' {...field} defaultValue="" type="text" id="hostname" placeholder="SRV-UBUNTU" />
                         </FormControl>
                         <FormMessage>{form.formState.errors.hostname?.message}</FormMessage>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className='w-1/2'>
+                  <FormField
+                    control={form.control}
+                    name="ip_address"
+                    render={({ field}) => (
+                      <FormItem>
+                        <FormLabel htmlFor="ip_address">IP Address (optional)</FormLabel>
+                        <FormControl>
+                          <Input autoComplete='off' {...field} defaultValue="" type="text" id="vmname" placeholder="192.168.1.10" />
+                        </FormControl>
+                        <FormMessage>{form.formState.errors.vmname?.message}</FormMessage>
                       </FormItem>
                     )}
                   />

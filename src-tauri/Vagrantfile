@@ -1,15 +1,16 @@
 
-    Vagrant.configure('2') do |config|
-    config.vm.box = 'dasda'
-    config.vm.hostname = 'dasda'
-    config.vm.define "dasda"
-    config.winrm.timeout = 1800
-    config.vm.boot_timeout = 1800
-    config.vm.provider "vmware_workstation" do |v|
-      v.gui = false
-      v.vmx["memsize"] = "512"
-      v.vmx["numvcpus"] = "1"
-      v.vmx["cpuid.coresPerSocket"] = "1"
-    end
-  end
-    
+          Vagrant.configure('2') do |config|
+          config.vm.box = 'roboxes/ubuntu2204'
+          config.vm.hostname = 'testdownload'
+          config.vm.define "testdownload"
+          config.winrm.timeout = 1800
+          config.vm.boot_timeout = 1800
+          config.vm.network "private_network", ip: "9.9.9.9"
+          config.vm.provider "vmware_workstation" do |v|
+            v.gui = true
+            v.vmx["memsize"] = "2048"
+            v.vmx["numvcpus"] = "2"
+            v.vmx["cpuid.coresPerSocket"] = "2"
+          end
+        end
+          
